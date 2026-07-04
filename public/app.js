@@ -53,7 +53,6 @@ function renderEntry(entry) {
     <div class="entry-top">
       <div>
         <h3>${escapeHtml(entry.name)}</h3>
-        <code class="entry-meta">${escapeHtml(entry.host)}:${escapeHtml(entry.port)}</code>
         ${entry.description ? `<p>${escapeHtml(entry.description)}</p>` : ''}
       </div>
       <span>${statusText}</span>

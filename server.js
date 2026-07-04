@@ -179,10 +179,8 @@ async function checkServer(item, timeoutMs) {
   const result = await checkTcp(item.host, item.port, timeoutMs);
 
   return {
-    id: item.id || `${item.host}:${item.port}`,
+    id: item.id || item.name,
     name: item.name,
-    host: item.host,
-    port: item.port,
     group: item.group || 'Servers',
     description: item.description || '',
     checkedAt: new Date().toISOString(),
