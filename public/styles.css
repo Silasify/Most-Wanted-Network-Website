@@ -265,7 +265,8 @@ button:disabled {
 .entry-card,
 .empty-state,
 .suggestion-form,
-.suggestion-notes {
+.suggestion-notes,
+.legal-content {
   background: linear-gradient(180deg, rgba(23, 31, 41, .96), rgba(16, 21, 28, .98));
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -548,6 +549,32 @@ textarea {
   line-height: 1.7;
   margin: 16px 0 0;
   padding-left: 20px;
+}
+
+.legal-content {
+  display: grid;
+  gap: 18px;
+  margin-top: 24px;
+  padding: 24px;
+}
+
+.legal-content p,
+.legal-content li {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.legal-content ul {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding-left: 22px;
+}
+
+.legal-content a {
+  color: var(--cyan);
+  font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .form-message {

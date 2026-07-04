@@ -37,7 +37,8 @@ const server = http.createServer(async (request, response) => {
       '/': '/index.html',
       '/status': '/status.html',
       '/about': '/about.html',
-      '/suggestions': '/suggestions.html'
+      '/suggestions': '/suggestions.html',
+      '/dayzmonetization': '/dayzmonetization.html'
     };
     const requestedPath = pageRoutes[url.pathname] || url.pathname;
     const filePath = path.normalize(path.join(publicDir, requestedPath));
