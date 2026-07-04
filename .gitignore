@@ -1,0 +1,6 @@
+.env
+.gh-cli/
+.git-gh-credential.cmd
+node_modules/
+npm-debug.log*
+*.local

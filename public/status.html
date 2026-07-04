@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Server Status | Most Wanted Network</title>
+  <meta name="description" content="Live status checks for Most Wanted Network game servers and community services.">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">
+      <img src="/assets/most-wanted-network-logo-gaming.png" alt="Most Wanted Network logo">
+      <span>Most Wanted Network</span>
+    </a>
+    <nav class="site-nav" aria-label="Main navigation">
+      <a href="/">Home</a>
+      <a aria-current="page" href="/status">Server Status</a>
+      <a href="/about">About Us</a>
+      <a href="/suggestions">Suggestions</a>
+    </nav>
+  </header>
+
+  <main class="page-shell">
+    <section class="page-hero status-hero">
+      <div>
+        <p class="eyebrow">Live status</p>
+        <h1 data-site-name>Most Wanted Network Status</h1>
+        <p data-status-copy>Checking configured services...</p>
+      </div>
+      <div class="overall unknown" data-overall>Checking</div>
+    </section>
+
+    <section class="summary-grid" aria-label="Status summary">
+      <article class="summary-card" data-summary-card="total">
+        <span>Entries</span>
+        <strong>0</strong>
+      </article>
+      <article class="summary-card online" data-summary-card="online">
+        <span>Online</span>
+        <strong>0</strong>
+      </article>
+      <article class="summary-card" data-summary-card="offline">
+        <span>Offline</span>
+        <strong>0</strong>
+      </article>
+      <article class="summary-card" data-summary-card="updated">
+        <span>Updated</span>
+        <strong>--</strong>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Services</h2>
+          <p>If something is configured for public checks, it shows up here automatically.</p>
+        </div>
+        <button type="button" data-refresh>Refresh</button>
+      </div>
+      <div class="entry-grid" data-entries>
+        <div class="empty-state">Loading status entries...</div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>Most Wanted Network</span>
+    <a href="/suggestions">Report an issue</a>
+  </footer>
+  <script src="/app.js"></script>
+</body>
+</html>

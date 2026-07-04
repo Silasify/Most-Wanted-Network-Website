@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Suggestions | Most Wanted Network</title>
+  <meta name="description" content="Send Most Wanted Network suggestions for new game servers, events, settings, and community improvements.">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">
+      <img src="/assets/most-wanted-network-logo-gaming.png" alt="Most Wanted Network logo">
+      <span>Most Wanted Network</span>
+    </a>
+    <nav class="site-nav" aria-label="Main navigation">
+      <a href="/">Home</a>
+      <a href="/status">Server Status</a>
+      <a href="/about">About Us</a>
+      <a aria-current="page" href="/suggestions">Suggestions</a>
+    </nav>
+  </header>
+
+  <main class="page-shell">
+    <section class="page-hero suggestions-hero">
+      <div>
+        <p class="eyebrow">Suggestions</p>
+        <h1>Got an idea? Send it in.</h1>
+        <p>New server, event night, settings change, Discord improvement, odd little quality-of-life thing: if it would make MWN better, we want to see it.</p>
+      </div>
+    </section>
+
+    <section class="suggestion-layout">
+      <form class="suggestion-form" data-suggestion-form>
+        <label>
+          Name
+          <input name="name" autocomplete="name" maxlength="80" placeholder="Your name or Discord handle">
+        </label>
+        <label>
+          Suggestion type
+          <select name="type">
+            <option>New game server</option>
+            <option>Server setting</option>
+            <option>Community event</option>
+            <option>Website or Discord improvement</option>
+          </select>
+        </label>
+        <label>
+          Your idea
+          <textarea name="idea" rows="6" maxlength="1800" required placeholder="Tell us what you would like to see and why it would be good for the community."></textarea>
+        </label>
+        <button type="submit">Send Suggestion</button>
+        <p class="form-message" data-suggestion-message role="status" aria-live="polite"></p>
+      </form>
+
+      <aside class="suggestion-notes" aria-label="Suggestion guidance">
+        <h2>What helps us act on it</h2>
+        <ul>
+          <li>What game, mode, setting, or event you have in mind.</li>
+          <li>Why you think people would show up for it.</li>
+          <li>Any useful details like mods, timing, server rules, or examples.</li>
+          <li>Whether you would help test, moderate, or organize it.</li>
+        </ul>
+      </aside>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>Most Wanted Network</span>
+    <a href="/about">About Us</a>
+  </footer>
+  <script src="/suggestions.js"></script>
+</body>
+</html>

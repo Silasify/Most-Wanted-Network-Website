@@ -1,0 +1,13 @@
+{
+  "name": "most-wanted-network-website",
+  "version": "1.0.0",
+  "description": "Most Wanted Network website with live status checks and Discord suggestions.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
