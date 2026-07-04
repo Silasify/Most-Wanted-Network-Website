@@ -376,7 +376,7 @@ button:disabled {
 .summary-grid {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   margin: 24px 0;
 }
 
@@ -403,6 +403,22 @@ button:disabled {
 }
 
 .summary-card.offline strong {
+  color: var(--red);
+}
+
+.health-summary {
+  grid-column: span 2;
+}
+
+.health-summary.online strong {
+  color: var(--green);
+}
+
+.health-summary.degraded strong {
+  color: var(--amber);
+}
+
+.health-summary.offline strong {
   color: var(--red);
 }
 
@@ -467,6 +483,65 @@ button:disabled {
 .entry-card.offline .entry-top span {
   background: rgba(255, 95, 131, .08);
   color: var(--red);
+}
+
+.entry-health {
+  margin-top: 18px;
+}
+
+.health-line {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.health-line span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.health-line strong {
+  font-size: 15px;
+}
+
+.entry-card.online .health-line strong {
+  color: var(--green);
+}
+
+.entry-card.offline .health-line strong {
+  color: var(--red);
+}
+
+.status-bars {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(34, minmax(3px, 1fr));
+  min-height: 18px;
+}
+
+.status-bars i {
+  background: rgba(174, 185, 200, .16);
+  border-radius: 999px;
+  display: block;
+  min-height: 18px;
+}
+
+.status-bars i.online {
+  background: var(--green);
+  box-shadow: 0 0 14px rgba(157, 240, 68, .22);
+}
+
+.status-bars i.degraded {
+  background: var(--amber);
+  box-shadow: 0 0 14px rgba(255, 209, 102, .2);
+}
+
+.status-bars i.offline {
+  background: var(--red);
+  box-shadow: 0 0 14px rgba(255, 95, 131, .22);
 }
 
 .entry-meta {
@@ -641,6 +716,10 @@ textarea {
 
   .summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .health-summary {
+    grid-column: 1 / -1;
   }
 
   .page-shell {

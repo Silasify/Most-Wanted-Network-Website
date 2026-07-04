@@ -3,6 +3,9 @@ const elements = {
   statusCopy: document.querySelector('[data-status-copy]'),
   overall: document.querySelector('[data-overall]'),
   entries: document.querySelector('[data-entries]'),
+  healthCard: document.querySelector('[data-health-card]'),
+  healthScore: document.querySelector('[data-health-score]'),
+  healthBars: document.querySelector('[data-health-bars]'),
   refresh: document.querySelector('[data-refresh]')
 };
 
@@ -39,6 +42,7 @@ function renderStatus(data) {
   updateSummary('online', data.summary.online, 'online');
   updateSummary('offline', data.summary.offline, data.summary.offline > 0 ? 'offline' : '');
   updateSummary('updated', new Date(data.generatedAt).toLocaleTimeString());
+  updateHealth(data);
 
   elements.entries.innerHTML = data.entries.length
     ? data.entries.map(renderEntry).join('')
@@ -48,6 +52,7 @@ function renderStatus(data) {
 function renderEntry(entry) {
   const statusText = entry.online ? 'Online' : 'Offline';
   const latency = entry.online ? `${entry.latencyMs} ms` : reasonText(entry.reason);
+  const health = getEntryHealth(entry);
 
   return `<article class="entry-card ${entry.online ? 'online' : 'offline'}">
     <div class="entry-top">
@@ -57,12 +62,28 @@ function renderEntry(entry) {
       </div>
       <span>${statusText}</span>
     </div>
+    <div class="entry-health">
+      <div class="health-line">
+        <span>Live health</span>
+        <strong>${health}%</strong>
+      </div>
+      ${renderBars(health, entry.online ? 'online' : 'offline')}
+    </div>
     <dl>
       <div><dt>Group</dt><dd>${escapeHtml(entry.group)}</dd></div>
       <div><dt>Latency</dt><dd>${escapeHtml(latency)}</dd></div>
       <div><dt>Checked</dt><dd>${new Date(entry.checkedAt).toLocaleTimeString()}</dd></div>
     </dl>
   </article>`;
+}
+
+function updateHealth(data) {
+  if (!elements.healthCard || !elements.healthScore || !elements.healthBars) return;
+  const score = getNetworkHealth(data.entries);
+  const state = score >= 95 ? 'online' : score > 0 ? 'degraded' : 'offline';
+  elements.healthCard.className = `summary-card health-summary ${state}`;
+  elements.healthScore.textContent = data.entries.length ? `${score}%` : '--';
+  elements.healthBars.innerHTML = data.entries.length ? renderBarSegments(score, state) : '';
 }
 
 function updateSummary(key, value, state = '') {
@@ -76,6 +97,8 @@ function renderError() {
   elements.statusCopy.textContent = 'The standalone status server is not responding.';
   elements.overall.className = 'overall outage';
   elements.overall.textContent = 'Unavailable';
+  if (elements.healthScore) elements.healthScore.textContent = '--';
+  if (elements.healthBars) elements.healthBars.innerHTML = '';
   elements.entries.innerHTML = '<div class="empty-state">Could not load status data.</div>';
 }
 
@@ -96,6 +119,32 @@ function getStatusLabel(overall) {
 function reasonText(reason) {
   if (reason === 'timeout') return 'Timed out';
   return reason || 'No response';
+}
+
+function getNetworkHealth(entries) {
+  if (!entries.length) return 0;
+  const total = entries.reduce((sum, entry) => sum + getEntryHealth(entry), 0);
+  return Math.round(total / entries.length);
+}
+
+function getEntryHealth(entry) {
+  if (!entry.online) return 0;
+  if (typeof entry.latencyMs !== 'number') return 95;
+  const latencyPenalty = Math.min(15, Math.floor(entry.latencyMs / 100));
+  return Math.max(85, 100 - latencyPenalty);
+}
+
+function renderBars(score, state) {
+  return `<div class="status-bars ${state}" aria-hidden="true">${renderBarSegments(score, state)}</div>`;
+}
+
+function renderBarSegments(score, state) {
+  const total = 34;
+  const filled = Math.round((score / 100) * total);
+  return Array.from({ length: total }, (_, index) => {
+    const active = index < filled;
+    return `<i class="${active ? state : 'empty'}"></i>`;
+  }).join('');
 }
 
 function escapeHtml(value) {
