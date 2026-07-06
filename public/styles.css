@@ -376,6 +376,52 @@ button:disabled {
   max-width: 720px;
 }
 
+.discord-cta-button {
+  align-items: center;
+  background: rgba(39, 215, 255, .1);
+  border: 1px solid rgba(39, 215, 255, .38);
+  border-radius: 8px;
+  color: var(--text);
+  display: inline-grid;
+  flex: 0 0 auto;
+  gap: 2px;
+  min-width: 190px;
+  padding: 12px 16px;
+  text-align: left;
+  transition: background .18s ease, border-color .18s ease, transform .18s ease;
+}
+
+.discord-cta-button::before {
+  background: linear-gradient(135deg, var(--cyan), #8ff2ff);
+  border-radius: 999px;
+  color: #061018;
+  content: "#";
+  display: inline-grid;
+  font-weight: 900;
+  height: 28px;
+  margin-bottom: 4px;
+  place-items: center;
+  width: 28px;
+}
+
+.discord-cta-button span {
+  color: var(--cyan);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.discord-cta-button strong {
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.discord-cta-button:hover {
+  background: rgba(39, 215, 255, .16);
+  border-color: rgba(39, 215, 255, .62);
+  transform: translateY(-1px);
+}
+
 .page-shell {
   margin: 0 auto;
   padding: 112px 0 58px;
@@ -916,7 +962,8 @@ textarea {
   }
 
   .button,
-  button {
+  button,
+  .discord-cta-button {
     width: 100%;
   }
 

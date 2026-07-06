@@ -1,0 +1,100 @@
+{
+  "items": {
+    "home.hero.eyebrow": {
+      "label": "Home hero eyebrow",
+      "group": "Home",
+      "type": "text",
+      "value": "Game servers with people behind them"
+    },
+    "home.hero.title": {
+      "label": "Home hero title",
+      "group": "Home",
+      "type": "text",
+      "value": "Most Wanted Network"
+    },
+    "home.hero.body": {
+      "label": "Home hero text",
+      "group": "Home",
+      "type": "rich",
+      "value": "We host the servers, keep an eye on things, and build the kind of game nights people actually want to come back to."
+    },
+    "home.section.title": {
+      "label": "Home section title",
+      "group": "Home",
+      "type": "text",
+      "value": "Jump in, check the status, or help decide what comes next"
+    },
+    "home.discord.title": {
+      "label": "Discord CTA title",
+      "group": "Home",
+      "type": "text",
+      "value": "Want updates, support, and event planning in one place?"
+    },
+    "home.discord.body": {
+      "label": "Discord CTA text",
+      "group": "Home",
+      "type": "rich",
+      "value": "Join the Discord for announcements, help, suggestions, and the day-to-day Most Wanted Network chatter."
+    },
+    "status.hero.title": {
+      "label": "Status page title",
+      "group": "Status",
+      "type": "text",
+      "value": "Most Wanted Network Status"
+    },
+    "status.services.body": {
+      "label": "Status services text",
+      "group": "Status",
+      "type": "rich",
+      "value": "If something is configured for public checks, it shows up here automatically."
+    },
+    "news.hero.title": {
+      "label": "News page title",
+      "group": "News",
+      "type": "text",
+      "value": "News & Changelog"
+    },
+    "news.hero.body": {
+      "label": "News page text",
+      "group": "News",
+      "type": "rich",
+      "value": "Short updates for new servers, wipes, events, maintenance, and the small changes players should know about."
+    },
+    "about.hero.title": {
+      "label": "About page title",
+      "group": "About",
+      "type": "text",
+      "value": "A small network for players who like things handled properly"
+    },
+    "about.hero.body": {
+      "label": "About page text",
+      "group": "About",
+      "type": "rich",
+      "value": "Most Wanted Network is our place for hosting games, trying new ideas, and keeping the community close enough that people recognize each other."
+    },
+    "suggestions.hero.title": {
+      "label": "Suggestions page title",
+      "group": "Suggestions",
+      "type": "text",
+      "value": "Got an idea? Send it in."
+    },
+    "suggestions.hero.body": {
+      "label": "Suggestions page text",
+      "group": "Suggestions",
+      "type": "rich",
+      "value": "New server, event night, settings change, Discord improvement, odd little quality-of-life thing: if it would make MWN better, we want to see it."
+    },
+    "dayz.hero.title": {
+      "label": "DayZ page title",
+      "group": "DayZ Monetization",
+      "type": "text",
+      "value": "DayZ server monetization information"
+    },
+    "dayz.legal.body": {
+      "label": "DayZ page content",
+      "group": "DayZ Monetization",
+      "type": "rich",
+      "value": "<p>From December 1st 2015, anyone who registers, is approved, and is listed on <a href=\"https://www.bohemia.net/monetization/approved/dayz\">https://www.bohemia.net/monetization/approved/dayz</a> is allowed following monetization of their DayZ private shard servers:</p><ul><li>Charging players to access your server, if the fees and associated perks do not affect gameplay in any way, is allowed. Limiting access to only paying players is allowed.</li><li>Product placement, in-game advertising and sponsorship is allowed. Accepting donations is allowed, but not donating must not prevent anyone from accessing the content.</li><li>Selling of in-game items that do not affect gameplay and selling cosmetic perks are allowed.</li><li>These rules do not apply to public hive DayZ servers or the DayZ mod.</li></ul><p>The permission is given for a limited time. It will expire on January 31st 2027.</p>"
+    }
+  }
+}

@@ -19,8 +19,8 @@
       <a href="/news">News</a>
       <a href="/about">About Us</a>
       <a href="/suggestions">Suggestions</a>
-      <a class="nav-admin" href="/admin" aria-label="Admin login" title="Admin login">⚙</a>
       <a class="nav-discord" href="/discord">Discord</a>
+      <a class="nav-admin" href="/admin" aria-label="Admin login" title="Admin login">⚙</a>
     </nav>
   </header>
 
@@ -30,9 +30,9 @@
         <img src="/assets/most-wanted-network-discord-banner.png" alt="">
       </div>
       <div class="hero-content">
-        <p class="eyebrow">Game servers with people behind them</p>
-        <h1>Most Wanted Network</h1>
-        <p>We host the servers, keep an eye on things, and build the kind of game nights people actually want to come back to.</p>
+        <p class="eyebrow" data-content="home.hero.eyebrow">Game servers with people behind them</p>
+        <h1 data-content="home.hero.title">Most Wanted Network</h1>
+        <p data-content="home.hero.body" data-content-mode="html">We host the servers, keep an eye on things, and build the kind of game nights people actually want to come back to.</p>
         <div class="hero-actions">
           <a class="button primary" href="/status">View Live Status</a>
           <a class="button secondary" href="/discord">Join Discord</a>
@@ -48,7 +48,7 @@
     <section class="content-band">
       <div class="section-head">
         <p class="eyebrow">What is running</p>
-        <h2>Jump in, check the status, or help decide what comes next</h2>
+        <h2 data-content="home.section.title">Jump in, check the status, or help decide what comes next</h2>
       </div>
       <div class="server-showcase">
         <article class="feature-card">
@@ -92,10 +92,13 @@
     <section class="discord-band">
       <div>
         <p class="eyebrow">Community hub</p>
-        <h2>Want updates, support, and event planning in one place?</h2>
-        <p>Join the Discord for announcements, help, suggestions, and the day-to-day Most Wanted Network chatter.</p>
+        <h2 data-content="home.discord.title">Want updates, support, and event planning in one place?</h2>
+        <p data-content="home.discord.body" data-content-mode="html">Join the Discord for announcements, help, suggestions, and the day-to-day Most Wanted Network chatter.</p>
       </div>
-      <a class="button primary" href="/discord">Join Discord</a>
+      <a class="discord-cta-button" href="/discord" aria-label="Join Discord">
+        <span>Discord</span>
+        <strong>Join the community</strong>
+      </a>
     </section>
   </main>
 
@@ -103,5 +106,6 @@
     <span>Most Wanted Network</span>
     <a href="/status">Server Status</a>
   </footer>
+  <script src="/content.js"></script>
 </body>
 </html>

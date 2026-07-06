@@ -19,8 +19,8 @@
       <a href="/news">News</a>
       <a href="/about">About Us</a>
       <a href="/suggestions">Suggestions</a>
-      <a class="nav-admin" href="/admin" aria-label="Admin login" title="Admin login">⚙</a>
       <a class="nav-discord" href="/discord">Discord</a>
+      <a class="nav-admin" href="/admin" aria-label="Admin login" title="Admin login">⚙</a>
     </nav>
   </header>
 
@@ -28,7 +28,7 @@
     <section class="page-hero status-hero">
       <div>
         <p class="eyebrow">Live status</p>
-        <h1 data-site-name>Most Wanted Network Status</h1>
+        <h1 data-site-name data-content="status.hero.title">Most Wanted Network Status</h1>
         <p data-status-copy>Checking configured services...</p>
       </div>
       <div class="overall unknown" data-overall>Checking</div>
@@ -62,7 +62,7 @@
       <div class="panel-head">
         <div>
           <h2>Services</h2>
-          <p>If something is configured for public checks, it shows up here automatically.</p>
+          <p data-content="status.services.body" data-content-mode="html">If something is configured for public checks, it shows up here automatically.</p>
         </div>
         <button type="button" data-refresh>Refresh</button>
       </div>
@@ -77,5 +77,6 @@
     <a href="/suggestions">Report an issue</a>
   </footer>
   <script src="/app.js"></script>
+  <script src="/content.js"></script>
 </body>
 </html>

@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 const configPath = path.join(rootDir, 'status.config.json');
 const newsPath = path.join(rootDir, 'news.config.json');
+const contentPath = path.join(rootDir, 'content.config.json');
 const publicDir = path.join(rootDir, 'public');
 const adminSessions = new Map();
 const adminStates = new Map();
@@ -43,6 +44,10 @@ const server = http.createServer(async (request, response) => {
 
     if (url.pathname === '/api/news') {
       return sendJson(response, 200, await buildNews());
+    }
+
+    if (url.pathname === '/api/content') {
+      return sendJson(response, 200, await readContentConfig());
     }
 
     const pageRoutes = {
@@ -131,8 +136,16 @@ async function handleAdmin(request, response, url) {
     return handleAdminSaveNews(request, response);
   }
 
+  if (request.method === 'POST' && url.pathname === '/admin/content') {
+    return handleAdminSaveContent(request, response);
+  }
+
   if (request.method === 'POST' && url.pathname === '/admin/status') {
     return handleAdminSaveStatus(request, response);
+  }
+
+  if (request.method === 'POST' && url.pathname === '/admin/status-test') {
+    return handleAdminStatusTest(request, response);
   }
 
   if (request.method === 'GET' && url.pathname === '/admin') {
@@ -219,15 +232,54 @@ async function handleAdminSaveNews(request, response) {
   return redirectPath(response, '/admin?notice=News saved.');
 }
 
+async function handleAdminSaveContent(request, response) {
+  const body = await readFormBody(request, 500_000);
+  const parsed = parseContentEditorPayload(body.content_items);
+  if (parsed instanceof Error) {
+    return redirectPath(response, `/admin?notice=${encodeURIComponent(parsed.message)}`);
+  }
+
+  await writeFile(contentPath, `${JSON.stringify(parsed, null, 2)}\n`, 'utf8');
+  return redirectPath(response, '/admin?notice=Page content saved.');
+}
+
 async function handleAdminSaveStatus(request, response) {
   const body = await readFormBody(request, 200_000);
-  const parsed = parseAdminJson(body.status_json, 'servers');
+  const parsed = parseStatusEditorPayload(body.status_items, body.status_settings);
   if (parsed instanceof Error) {
     return redirectPath(response, `/admin?notice=${encodeURIComponent(parsed.message)}`);
   }
 
   await writeFile(configPath, `${JSON.stringify(parsed, null, 2)}\n`, 'utf8');
   return redirectPath(response, '/admin?notice=Status config saved.');
+}
+
+async function handleAdminStatusTest(request, response) {
+  const body = await readJsonBody(request, 20_000).catch(() => null);
+  const host = cleanField(body?.host, 160);
+  const port = Number(body?.port);
+
+  if (!host || !Number.isInteger(port) || port < 1 || port > 65535) {
+    return sendJson(response, 400, {
+      ok: false,
+      online: false,
+      message: 'Add a valid host and port first.'
+    });
+  }
+
+  const startedAt = Date.now();
+  const result = await checkTcp(host, port, 5000);
+  const latencyMs = result.online ? Date.now() - startedAt : null;
+
+  return sendJson(response, 200, {
+    ok: true,
+    online: result.online,
+    latencyMs,
+    reason: result.reason || null,
+    message: result.online
+      ? `Connection works (${latencyMs} ms).`
+      : `No TCP response${result.reason ? `: ${result.reason}` : '.'}`
+  });
 }
 
 async function handleSuggestion(request, response) {
@@ -445,6 +497,70 @@ function parseNewsEditorPayload(value) {
   }
 }
 
+function parseContentEditorPayload(value) {
+  try {
+    const items = JSON.parse(String(value || '{}'));
+    if (!items || typeof items !== 'object' || Array.isArray(items)) {
+      return new Error('Content form data was not valid.');
+    }
+
+    const current = structuredClone(defaultContentConfig().items);
+    for (const [key, item] of Object.entries(items)) {
+      if (!current[key]) continue;
+      const type = current[key].type;
+      current[key] = {
+        ...current[key],
+        value: type === 'rich'
+          ? sanitizeRichText(item.value).slice(0, 8000)
+          : cleanField(item.value, 240)
+      };
+    }
+
+    return { items: current };
+  } catch {
+    return new Error('Content form data was not valid.');
+  }
+}
+
+function parseStatusEditorPayload(itemsValue, settingsValue) {
+  try {
+    const items = JSON.parse(String(itemsValue || '[]'));
+    const settings = JSON.parse(String(settingsValue || '{}'));
+    if (!Array.isArray(items)) return new Error('Status form data was not valid.');
+
+    const servers = items
+      .map((item) => ({
+        name: cleanField(item.name, 100) || 'Server',
+        host: cleanField(item.host, 160),
+        port: Number(item.port),
+        group: cleanField(item.group, 80) || 'Servers',
+        description: cleanField(item.description, 260),
+        actions: Array.isArray(item.actions)
+          ? item.actions
+            .map((action) => ({
+              label: cleanField(action.label, 32),
+              url: cleanField(action.url, 300)
+            }))
+            .filter((action) => action.label && /^https?:\/\//i.test(action.url))
+            .slice(0, 4)
+          : []
+      }))
+      .filter((item) => item.host && Number.isInteger(item.port) && item.port > 0 && item.port <= 65535)
+      .slice(0, 40);
+
+    return {
+      siteName: cleanField(settings.siteName, 80) || 'Most Wanted Network',
+      port: Number(settings.port) || 3100,
+      refreshSeconds: Number(settings.refreshSeconds) || 30,
+      timeoutMs: Number(settings.timeoutMs) || 5000,
+      discordInviteUrl: cleanField(settings.discordInviteUrl, 300),
+      servers
+    };
+  } catch {
+    return new Error('Status form data was not valid.');
+  }
+}
+
 function sanitizeRichText(value) {
   const html = String(value || '')
     .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
@@ -565,10 +681,56 @@ async function readNewsConfig() {
   }
 }
 
+async function readContentConfig() {
+  try {
+    const raw = await readFile(contentPath, 'utf8');
+    const config = JSON.parse(raw);
+    const defaults = defaultContentConfig();
+    const items = structuredClone(defaults.items);
+    for (const [key, item] of Object.entries(config.items || {})) {
+      if (!items[key]) continue;
+      items[key].value = items[key].type === 'rich'
+        ? sanitizeRichText(item.value)
+        : cleanField(item.value, 240);
+    }
+
+    return {
+      items
+    };
+  } catch (error) {
+    if (error.code !== 'ENOENT') console.error('Content config failed:', error);
+    return defaultContentConfig();
+  }
+}
+
+function defaultContentConfig() {
+  return {
+    items: {
+      'home.hero.eyebrow': { label: 'Home hero eyebrow', group: 'Home', type: 'text', value: 'Game servers with people behind them' },
+      'home.hero.title': { label: 'Home hero title', group: 'Home', type: 'text', value: 'Most Wanted Network' },
+      'home.hero.body': { label: 'Home hero text', group: 'Home', type: 'rich', value: 'We host the servers, keep an eye on things, and build the kind of game nights people actually want to come back to.' },
+      'home.section.title': { label: 'Home section title', group: 'Home', type: 'text', value: 'Jump in, check the status, or help decide what comes next' },
+      'home.discord.title': { label: 'Discord CTA title', group: 'Home', type: 'text', value: 'Want updates, support, and event planning in one place?' },
+      'home.discord.body': { label: 'Discord CTA text', group: 'Home', type: 'rich', value: 'Join the Discord for announcements, help, suggestions, and the day-to-day Most Wanted Network chatter.' },
+      'status.hero.title': { label: 'Status page title', group: 'Status', type: 'text', value: 'Most Wanted Network Status' },
+      'status.services.body': { label: 'Status services text', group: 'Status', type: 'rich', value: 'If something is configured for public checks, it shows up here automatically.' },
+      'news.hero.title': { label: 'News page title', group: 'News', type: 'text', value: 'News & Changelog' },
+      'news.hero.body': { label: 'News page text', group: 'News', type: 'rich', value: 'Short updates for new servers, wipes, events, maintenance, and the small changes players should know about.' },
+      'about.hero.title': { label: 'About page title', group: 'About', type: 'text', value: 'A small network for players who like things handled properly' },
+      'about.hero.body': { label: 'About page text', group: 'About', type: 'rich', value: 'Most Wanted Network is our place for hosting games, trying new ideas, and keeping the community close enough that people recognize each other.' },
+      'suggestions.hero.title': { label: 'Suggestions page title', group: 'Suggestions', type: 'text', value: 'Got an idea? Send it in.' },
+      'suggestions.hero.body': { label: 'Suggestions page text', group: 'Suggestions', type: 'rich', value: 'New server, event night, settings change, Discord improvement, odd little quality-of-life thing: if it would make MWN better, we want to see it.' },
+      'dayz.hero.title': { label: 'DayZ page title', group: 'DayZ Monetization', type: 'text', value: 'DayZ server monetization information' },
+      'dayz.legal.body': { label: 'DayZ page content', group: 'DayZ Monetization', type: 'rich', value: '<p>From December 1st 2015, anyone who registers, is approved, and is listed on <a href="https://www.bohemia.net/monetization/approved/dayz">https://www.bohemia.net/monetization/approved/dayz</a> is allowed following monetization of their DayZ private shard servers:</p><ul><li>Charging players to access your server, if the fees and associated perks do not affect gameplay in any way, is allowed. Limiting access to only paying players is allowed.</li><li>Product placement, in-game advertising and sponsorship is allowed. Accepting donations is allowed, but not donating must not prevent anyone from accessing the content.</li><li>Selling of in-game items that do not affect gameplay and selling cosmetic perks are allowed.</li><li>These rules do not apply to public hive DayZ servers or the DayZ mod.</li></ul><p>The permission is given for a limited time. It will expire on January 31st 2027.</p>' }
+    }
+  };
+}
+
 async function renderAdminPage(admin, notice) {
-  const [statusRaw, newsConfig] = await Promise.all([
-    readFile(configPath, 'utf8'),
-    readNewsConfig()
+  const [statusConfig, newsConfig, contentConfig] = await Promise.all([
+    readConfig(),
+    readNewsConfig(),
+    readContentConfig()
   ]);
 
   return `<!doctype html>
@@ -581,15 +743,34 @@ async function renderAdminPage(admin, notice) {
 </head>
 <body>
   <header>
-    <div>
-      <span class="eyebrow">Website Admin</span>
-      <h1>Most Wanted Network</h1>
-      <p>Signed in as ${escapeHtml(admin.username)}. Changes are saved directly to the website config files.</p>
-    </div>
+    <a class="admin-brand" href="/">
+      <img src="/assets/most-wanted-network-logo-gaming.png" alt="">
+      <div>
+        <span class="eyebrow">Website Admin</span>
+        <h1>Most Wanted Network</h1>
+        <p>Signed in as ${escapeHtml(admin.username)}. Changes are saved directly to the website config files.</p>
+      </div>
+    </a>
     <a class="button secondary" href="/admin/logout">Logout</a>
   </header>
   <main>
     ${notice ? `<div class="notice">${escapeHtml(notice)}</div>` : ''}
+    <section>
+      <div class="section-head">
+        <div>
+          <h2>Page Content</h2>
+          <p>Edit the visible text on the public website pages.</p>
+        </div>
+        <a class="button secondary" href="/" target="_blank" rel="noreferrer">Open Site</a>
+      </div>
+      <form method="post" action="/admin/content" data-content-form>
+        <input type="hidden" name="content_items" data-content-payload>
+        ${renderContentEditor(contentConfig.items)}
+        <div class="admin-actions">
+          <button type="submit">Save Page Content</button>
+        </div>
+      </form>
+    </section>
     <section>
       <div class="section-head">
         <div>
@@ -612,14 +793,19 @@ async function renderAdminPage(admin, notice) {
     <section>
       <div class="section-head">
         <div>
-          <h2>Status Config</h2>
+          <h2>Server Status</h2>
           <p>Edit checked services and public buttons. Keep private admin links out of actions.</p>
         </div>
         <a class="button secondary" href="/status" target="_blank" rel="noreferrer">Open Status</a>
       </div>
-      <form method="post" action="/admin/status">
-        <textarea name="status_json" spellcheck="false">${escapeHtml(statusRaw.trim())}</textarea>
-        <button type="submit">Save Status</button>
+      <form method="post" action="/admin/status" data-status-form>
+        <input type="hidden" name="status_settings" data-status-settings>
+        <input type="hidden" name="status_items" data-status-payload>
+        ${renderStatusEditor(statusConfig)}
+        <div class="admin-actions">
+          <button type="button" class="button secondary" data-add-status>Add Server</button>
+          <button type="submit">Save Status</button>
+        </div>
       </form>
     </section>
   </main>
@@ -696,6 +882,83 @@ function renderNewsEditorItems(items) {
   return list.map((item) => renderNewsEditorItem(item)).join('');
 }
 
+function renderContentEditor(items) {
+  const grouped = Object.entries(items).reduce((acc, [key, item]) => {
+    acc[item.group] ??= [];
+    acc[item.group].push([key, item]);
+    return acc;
+  }, {});
+
+  return Object.entries(grouped).map(([group, groupItems]) => `
+    <div class="editor-group">
+      <h3>${escapeHtml(group)}</h3>
+      <div class="field-grid">
+        ${groupItems.map(([key, item]) => item.type === 'rich'
+          ? `<label class="full">${escapeHtml(item.label)}
+              ${renderMiniToolbar()}
+              <div class="rich-editor" contenteditable="true" data-content-key="${escapeHtml(key)}" data-content-type="rich">${sanitizeRichText(item.value)}</div>
+            </label>`
+          : `<label>${escapeHtml(item.label)}<input data-content-key="${escapeHtml(key)}" data-content-type="text" value="${escapeHtml(item.value)}"></label>`
+        ).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderStatusEditor(config) {
+  return `
+    <div class="editor-group">
+      <h3>General Settings</h3>
+      <div class="field-grid" data-status-general>
+        <label>Site Name<input data-status-setting="siteName" value="${escapeHtml(config.siteName)}"></label>
+        <label>Website Port<input data-status-setting="port" type="number" min="1" max="65535" value="${escapeHtml(config.port)}"></label>
+        <label>Refresh Seconds<input data-status-setting="refreshSeconds" type="number" min="5" value="${escapeHtml(config.refreshSeconds)}"></label>
+        <label>Timeout MS<input data-status-setting="timeoutMs" type="number" min="500" value="${escapeHtml(config.timeoutMs)}"></label>
+        <label class="full">Discord Invite URL<input data-status-setting="discordInviteUrl" value="${escapeHtml(config.discordInviteUrl)}" placeholder="https://discord.gg/..."></label>
+      </div>
+    </div>
+    <div class="news-editor-list" data-status-list>
+      ${(config.servers || []).map((server) => renderStatusEditorItem(server)).join('') || renderStatusEditorItem({ name: '', host: '', port: 30120, group: 'Servers', description: '', actions: [] })}
+    </div>
+  `;
+}
+
+function renderStatusEditorItem(item) {
+  const actions = Array.isArray(item.actions) && item.actions.length
+    ? item.actions
+    : [{ label: '', url: '' }];
+
+  return `<article class="news-editor-item" data-status-item>
+    <div class="item-head">
+      <strong>Status Entry</strong>
+      <button type="button" class="button secondary compact" data-remove-status>Remove</button>
+    </div>
+    <div class="field-grid">
+      <label>Name<input data-status-field="name" value="${escapeHtml(item.name || '')}" placeholder="Dune: Awakening"></label>
+      <label>Group<input data-status-field="group" value="${escapeHtml(item.group || 'Servers')}" placeholder="Server"></label>
+      <label>Host / IP<input data-status-field="host" value="${escapeHtml(item.host || '')}" placeholder="127.0.0.1"></label>
+      <label>Port<input data-status-field="port" type="number" min="1" max="65535" value="${escapeHtml(item.port || '')}"></label>
+      <label class="full">Description<input data-status-field="description" value="${escapeHtml(item.description || '')}" placeholder="Optional public note"></label>
+    </div>
+    <div class="action-list" data-action-list>
+      ${actions.map((action) => renderActionEditorItem(action)).join('')}
+    </div>
+    <div class="status-test-row">
+      <button type="button" class="button secondary compact" data-test-status>Test Connection</button>
+      <span data-test-result>Not tested</span>
+    </div>
+    <button type="button" class="button secondary compact" data-add-action>Add Button</button>
+  </article>`;
+}
+
+function renderActionEditorItem(action) {
+  return `<div class="action-row" data-action-item>
+    <label>Button Label<input data-action-field="label" value="${escapeHtml(action.label || '')}" placeholder="Join Discord"></label>
+    <label>Button URL<input data-action-field="url" value="${escapeHtml(action.url || '')}" placeholder="https://..."></label>
+    <button type="button" class="button secondary compact" data-remove-action>Remove</button>
+  </div>`;
+}
+
 function renderNewsEditorItem(item) {
   return `<article class="news-editor-item" data-news-item>
     <div class="item-head">
@@ -709,15 +972,19 @@ function renderNewsEditorItem(item) {
       <label>Link Label<input data-field="linkLabel" value="${escapeHtml(item.linkLabel || '')}" placeholder="Optional button text"></label>
       <label class="full">Link URL<input data-field="linkUrl" value="${escapeHtml(item.linkUrl || '')}" placeholder="https://..."></label>
     </div>
-    <div class="editor-toolbar" aria-label="Text formatting">
-      <button type="button" data-command="bold" title="Bold"><strong>B</strong></button>
-      <button type="button" data-command="italic" title="Italic"><em>I</em></button>
-      <button type="button" data-command="underline" title="Underline"><u>U</u></button>
-      <button type="button" data-command="insertUnorderedList" title="Bullet list">List</button>
-      <button type="button" data-link title="Add link">Link</button>
-    </div>
+    ${renderMiniToolbar()}
     <div class="rich-editor" contenteditable="true" data-field="bodyHtml" role="textbox" aria-label="News body">${sanitizeRichText(item.bodyHtml || item.body || '')}</div>
   </article>`;
+}
+
+function renderMiniToolbar() {
+  return `<div class="editor-toolbar" aria-label="Text formatting">
+    <button type="button" data-command="bold" title="Bold"><strong>B</strong></button>
+    <button type="button" data-command="italic" title="Italic"><em>I</em></button>
+    <button type="button" data-command="underline" title="Underline"><u>U</u></button>
+    <button type="button" data-command="insertUnorderedList" title="Bullet list">List</button>
+    <button type="button" data-link title="Add link">Link</button>
+  </div>`;
 }
 
 function adminEditorScript() {
@@ -726,6 +993,15 @@ function adminEditorScript() {
     const newsForm = document.querySelector('[data-news-form]');
     const payloadInput = document.querySelector('[data-news-payload]');
     const addButton = document.querySelector('[data-add-news]');
+    const contentForm = document.querySelector('[data-content-form]');
+    const contentPayload = document.querySelector('[data-content-payload]');
+    const statusForm = document.querySelector('[data-status-form]');
+    const statusPayload = document.querySelector('[data-status-payload]');
+    const statusSettings = document.querySelector('[data-status-settings]');
+    const statusList = document.querySelector('[data-status-list]');
+    const addStatusButton = document.querySelector('[data-add-status]');
+    const blankStatus = ${JSON.stringify(renderStatusEditorItem({ name: '', host: '', port: 30120, group: 'Servers', description: '', actions: [] }))};
+    const blankAction = ${JSON.stringify(renderActionEditorItem({ label: '', url: '' }))};
 
     addButton?.addEventListener('click', () => {
       const template = document.createElement('template');
@@ -740,7 +1016,7 @@ function adminEditorScript() {
       newsList.appendChild(template.content.firstElementChild);
     });
 
-    newsList?.addEventListener('click', (event) => {
+    document.addEventListener('click', (event) => {
       const removeButton = event.target.closest('[data-remove-news]');
       if (removeButton) {
         if (newsList.querySelectorAll('[data-news-item]').length > 1) {
@@ -752,7 +1028,7 @@ function adminEditorScript() {
       const commandButton = event.target.closest('[data-command]');
       if (commandButton) {
         event.preventDefault();
-        commandButton.closest('[data-news-item]').querySelector('.rich-editor')?.focus();
+        commandButton.closest('.news-editor-item, .editor-group, label')?.querySelector('.rich-editor')?.focus();
         document.execCommand(commandButton.dataset.command, false, null);
         return;
       }
@@ -760,10 +1036,79 @@ function adminEditorScript() {
       const linkButton = event.target.closest('[data-link]');
       if (linkButton) {
         event.preventDefault();
-        linkButton.closest('[data-news-item]').querySelector('.rich-editor')?.focus();
+        linkButton.closest('.news-editor-item, .editor-group, label')?.querySelector('.rich-editor')?.focus();
         const url = prompt('Link URL');
         if (url && /^https?:\\/\\//i.test(url)) document.execCommand('createLink', false, url);
+        return;
       }
+
+      const removeStatus = event.target.closest('[data-remove-status]');
+      if (removeStatus) {
+        if (statusList.querySelectorAll('[data-status-item]').length > 1) {
+          removeStatus.closest('[data-status-item]').remove();
+        }
+        return;
+      }
+
+      const addAction = event.target.closest('[data-add-action]');
+      if (addAction) {
+        const template = document.createElement('template');
+        template.innerHTML = blankAction;
+        addAction.closest('[data-status-item]').querySelector('[data-action-list]').appendChild(template.content.firstElementChild);
+        return;
+      }
+
+      const removeAction = event.target.closest('[data-remove-action]');
+      if (removeAction) {
+        const list = removeAction.closest('[data-action-list]');
+        if (list.querySelectorAll('[data-action-item]').length > 1) removeAction.closest('[data-action-item]').remove();
+        return;
+      }
+
+      const testStatus = event.target.closest('[data-test-status]');
+      if (testStatus) {
+        const item = testStatus.closest('[data-status-item]');
+        const result = item.querySelector('[data-test-result]');
+        const host = item.querySelector('[data-status-field="host"]').value;
+        const port = item.querySelector('[data-status-field="port"]').value;
+        testStatus.disabled = true;
+        result.className = 'test-result';
+        result.textContent = 'Checking...';
+
+        fetch('/admin/status-test', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ host, port })
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            result.className = 'test-result ' + (data.online ? 'ok' : 'bad');
+            result.textContent = data.message || (data.online ? 'Connection works.' : 'No response.');
+          })
+          .catch(() => {
+            result.className = 'test-result bad';
+            result.textContent = 'Could not run the test.';
+          })
+          .finally(() => {
+            testStatus.disabled = false;
+          });
+      }
+    });
+
+    addStatusButton?.addEventListener('click', () => {
+      const template = document.createElement('template');
+      template.innerHTML = blankStatus;
+      statusList.appendChild(template.content.firstElementChild);
+    });
+
+    contentForm?.addEventListener('submit', () => {
+      const items = {};
+      for (const field of contentForm.querySelectorAll('[data-content-key]')) {
+        items[field.dataset.contentKey] = {
+          value: field.dataset.contentType === 'rich' ? field.innerHTML : field.value
+        };
+      }
+      contentPayload.value = JSON.stringify(items);
     });
 
     newsForm?.addEventListener('submit', () => {
@@ -774,6 +1119,21 @@ function adminEditorScript() {
         bodyHtml: item.querySelector('[data-field="bodyHtml"]').innerHTML,
         linkLabel: item.querySelector('[data-field="linkLabel"]').value,
         linkUrl: item.querySelector('[data-field="linkUrl"]').value
+      })));
+    });
+
+    statusForm?.addEventListener('submit', () => {
+      statusSettings.value = JSON.stringify(Object.fromEntries(Array.from(statusForm.querySelectorAll('[data-status-setting]')).map((input) => [input.dataset.statusSetting, input.value])));
+      statusPayload.value = JSON.stringify(Array.from(statusList.querySelectorAll('[data-status-item]')).map((item) => ({
+        name: item.querySelector('[data-status-field="name"]').value,
+        group: item.querySelector('[data-status-field="group"]').value,
+        host: item.querySelector('[data-status-field="host"]').value,
+        port: item.querySelector('[data-status-field="port"]').value,
+        description: item.querySelector('[data-status-field="description"]').value,
+        actions: Array.from(item.querySelectorAll('[data-action-item]')).map((action) => ({
+          label: action.querySelector('[data-action-field="label"]').value,
+          url: action.querySelector('[data-action-field="url"]').value
+        }))
       })));
     });
   `;
@@ -798,7 +1158,10 @@ function adminStyles() {
       margin: 0;
       min-height: 100vh;
       font-family: Inter, Segoe UI, Arial, sans-serif;
-      background: linear-gradient(145deg, rgba(39,215,255,.08), transparent 32rem), var(--bg);
+      background:
+        radial-gradient(circle at 18% 0%, rgba(39,215,255,.10), transparent 28rem),
+        radial-gradient(circle at 82% 8%, rgba(157,240,68,.08), transparent 24rem),
+        var(--bg);
       color: var(--text);
     }
     header, main { width: min(1180px, calc(100vw - 32px)); margin: 0 auto; }
@@ -808,6 +1171,18 @@ function adminStyles() {
       gap: 18px;
       justify-content: space-between;
       padding: 34px 0 18px;
+    }
+    .admin-brand {
+      align-items: center;
+      color: inherit;
+      display: flex;
+      gap: 14px;
+      text-decoration: none;
+    }
+    .admin-brand img {
+      height: 64px;
+      object-fit: contain;
+      width: 64px;
     }
     h1, h2, p { margin: 0; letter-spacing: 0; }
     h1 { font-size: clamp(34px, 5vw, 56px); line-height: 1; }
@@ -825,7 +1200,7 @@ function adminStyles() {
       background: linear-gradient(180deg, var(--panel), var(--panel-2));
       border: 1px solid var(--line);
       border-radius: 8px;
-      box-shadow: 0 22px 72px rgba(0,0,0,.3);
+      box-shadow: 0 16px 48px rgba(0,0,0,.24);
     }
     section { margin: 18px 0; padding: 20px; }
     .notice {
@@ -873,6 +1248,19 @@ function adminStyles() {
       display: grid;
       gap: 14px;
     }
+    .editor-group {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 18px;
+    }
+    .editor-group:first-of-type {
+      border-top: 0;
+      margin-top: 0;
+      padding-top: 0;
+    }
+    .editor-group h3 {
+      margin: 0 0 12px;
+    }
     .news-editor-item {
       background: rgba(7, 11, 18, .5);
       border: 1px solid var(--line);
@@ -892,6 +1280,30 @@ function adminStyles() {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .field-grid .full { grid-column: 1 / -1; }
+    .action-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .action-row {
+      align-items: end;
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr 1.5fr auto;
+    }
+    .status-test-row {
+      align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .test-result {
+      color: var(--muted);
+      font-weight: 800;
+    }
+    .test-result.ok { color: var(--green); }
+    .test-result.bad { color: var(--red); }
     .editor-toolbar {
       display: flex;
       flex-wrap: wrap;
@@ -928,7 +1340,7 @@ function adminStyles() {
     }
     button, .button {
       align-items: center;
-      background: var(--cyan);
+      background: linear-gradient(135deg, var(--cyan), #8ff2ff);
       border: 0;
       border-radius: 7px;
       color: #061018;
@@ -967,6 +1379,8 @@ function adminStyles() {
     @media (max-width: 700px) {
       header, .section-head { display: grid; }
       .button.secondary { width: 100%; }
+      .field-grid,
+      .action-row { grid-template-columns: 1fr; }
     }
   `;
 }
