@@ -690,6 +690,28 @@ textarea {
   margin-top: 10px;
 }
 
+.news-body {
+  color: var(--muted);
+  line-height: 1.65;
+  margin-top: 10px;
+}
+
+.news-body p,
+.news-body ul,
+.news-body ol {
+  margin: 8px 0 0;
+}
+
+.news-body ul,
+.news-body ol {
+  padding-left: 20px;
+}
+
+.news-body a {
+  color: var(--cyan);
+  font-weight: 800;
+}
+
 .news-card a {
   background: rgba(39, 215, 255, .1);
   border: 1px solid rgba(39, 215, 255, .35);

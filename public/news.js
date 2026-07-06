@@ -20,12 +20,15 @@ function renderNewsItem(item) {
   const link = item.linkLabel && item.linkUrl
     ? `<a href="${escapeHtml(item.linkUrl)}" rel="noreferrer">${escapeHtml(item.linkLabel)}</a>`
     : '';
+  const body = item.bodyHtml
+    ? `<div class="news-body">${item.bodyHtml}</div>`
+    : `<p>${escapeHtml(item.body)}</p>`;
 
   return `<article class="news-card">
     <div>
-      <span class="card-kicker">${escapeHtml(item.category)} · ${escapeHtml(date)}</span>
+      <span class="card-kicker">${escapeHtml(item.category)} - ${escapeHtml(date)}</span>
       <h2>${escapeHtml(item.title)}</h2>
-      <p>${escapeHtml(item.body)}</p>
+      ${body}
     </div>
     ${link}
   </article>`;

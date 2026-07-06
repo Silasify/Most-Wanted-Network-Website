@@ -210,7 +210,7 @@ function handleAdminLogout(response) {
 
 async function handleAdminSaveNews(request, response) {
   const body = await readFormBody(request, 200_000);
-  const parsed = parseAdminJson(body.news_json, 'items');
+  const parsed = parseNewsEditorPayload(body.news_items);
   if (parsed instanceof Error) {
     return redirectPath(response, `/admin?notice=${encodeURIComponent(parsed.message)}`);
   }
@@ -421,6 +421,64 @@ function parseAdminJson(value, requiredArrayKey) {
   }
 }
 
+function parseNewsEditorPayload(value) {
+  try {
+    const items = JSON.parse(String(value || '[]'));
+    if (!Array.isArray(items)) return new Error('News form data was not valid.');
+
+    const cleanedItems = items
+      .map((item) => ({
+        title: cleanField(item.title, 120) || 'Network update',
+        category: cleanField(item.category, 60) || 'Update',
+        date: cleanField(item.date, 40) || new Date().toISOString().slice(0, 10),
+        body: htmlToPlainText(item.bodyHtml || item.body).slice(0, 800),
+        bodyHtml: sanitizeRichText(item.bodyHtml || item.body).slice(0, 4000),
+        linkLabel: cleanField(item.linkLabel, 40),
+        linkUrl: cleanField(item.linkUrl, 300)
+      }))
+      .filter((item) => item.body || item.bodyHtml)
+      .slice(0, 20);
+
+    return { items: cleanedItems };
+  } catch {
+    return new Error('News form data was not valid.');
+  }
+}
+
+function sanitizeRichText(value) {
+  const html = String(value || '')
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '');
+
+  const allowedTags = new Set(['b', 'strong', 'i', 'em', 'u', 'p', 'br', 'ul', 'ol', 'li', 'a']);
+  return html.replace(/<\/?([a-z0-9]+)([^>]*)>/gi, (match, rawTag, rawAttrs) => {
+    const tag = rawTag.toLowerCase();
+    if (!allowedTags.has(tag)) return '';
+    if (tag !== 'a') return match.startsWith('</') ? `</${tag}>` : `<${tag}>`;
+
+    if (match.startsWith('</')) return '</a>';
+    const href = rawAttrs.match(/\shref=["']([^"']+)["']/i)?.[1] || '';
+    if (!/^https?:\/\//i.test(href)) return '<a>';
+    return `<a href="${escapeHtml(href)}" rel="noreferrer">`;
+  });
+}
+
+function htmlToPlainText(value) {
+  return String(value || '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/\s+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 async function checkServer(item, timeoutMs) {
   const startedAt = Date.now();
   const result = await checkTcp(item.host, item.port, timeoutMs);
@@ -494,10 +552,11 @@ async function readNewsConfig() {
           category: cleanField(item.category, 60) || 'Update',
           date: cleanField(item.date, 40) || '',
           body: cleanField(item.body, 800),
+          bodyHtml: sanitizeRichText(item.bodyHtml || item.body),
           linkLabel: cleanField(item.linkLabel, 40),
           linkUrl: cleanField(item.linkUrl, 300)
         }))
-        .filter((item) => item.body)
+        .filter((item) => item.body || item.bodyHtml)
         .slice(0, 20)
     };
   } catch (error) {
@@ -507,9 +566,9 @@ async function readNewsConfig() {
 }
 
 async function renderAdminPage(admin, notice) {
-  const [statusRaw, newsRaw] = await Promise.all([
+  const [statusRaw, newsConfig] = await Promise.all([
     readFile(configPath, 'utf8'),
-    readFile(newsPath, 'utf8').catch(() => '{\n  "items": []\n}\n')
+    readNewsConfig()
   ]);
 
   return `<!doctype html>
@@ -539,9 +598,15 @@ async function renderAdminPage(admin, notice) {
         </div>
         <a class="button secondary" href="/news" target="_blank" rel="noreferrer">Open News</a>
       </div>
-      <form method="post" action="/admin/news">
-        <textarea name="news_json" spellcheck="false">${escapeHtml(newsRaw.trim())}</textarea>
-        <button type="submit">Save News</button>
+      <form method="post" action="/admin/news" data-news-form>
+        <input type="hidden" name="news_items" data-news-payload>
+        <div class="news-editor-list" data-news-list>
+          ${renderNewsEditorItems(newsConfig.items)}
+        </div>
+        <div class="admin-actions">
+          <button type="button" class="button secondary" data-add-news>Add News Post</button>
+          <button type="submit">Save News</button>
+        </div>
       </form>
     </section>
     <section>
@@ -558,6 +623,7 @@ async function renderAdminPage(admin, notice) {
       </form>
     </section>
   </main>
+  <script>${adminEditorScript()}</script>
 </body>
 </html>`;
 }
@@ -615,6 +681,102 @@ function renderAdminSetupMissingPage(settings) {
   </main>
 </body>
 </html>`;
+}
+
+function renderNewsEditorItems(items) {
+  const list = items.length ? items : [{
+    title: '',
+    category: 'Update',
+    date: new Date().toISOString().slice(0, 10),
+    bodyHtml: '',
+    linkLabel: '',
+    linkUrl: ''
+  }];
+
+  return list.map((item) => renderNewsEditorItem(item)).join('');
+}
+
+function renderNewsEditorItem(item) {
+  return `<article class="news-editor-item" data-news-item>
+    <div class="item-head">
+      <strong>News Post</strong>
+      <button type="button" class="button secondary compact" data-remove-news>Remove</button>
+    </div>
+    <div class="field-grid">
+      <label>Title<input data-field="title" value="${escapeHtml(item.title || '')}" placeholder="Server wipe notice"></label>
+      <label>Category<input data-field="category" value="${escapeHtml(item.category || 'Update')}" placeholder="Update"></label>
+      <label>Date<input data-field="date" type="date" value="${escapeHtml(item.date || '')}"></label>
+      <label>Link Label<input data-field="linkLabel" value="${escapeHtml(item.linkLabel || '')}" placeholder="Optional button text"></label>
+      <label class="full">Link URL<input data-field="linkUrl" value="${escapeHtml(item.linkUrl || '')}" placeholder="https://..."></label>
+    </div>
+    <div class="editor-toolbar" aria-label="Text formatting">
+      <button type="button" data-command="bold" title="Bold"><strong>B</strong></button>
+      <button type="button" data-command="italic" title="Italic"><em>I</em></button>
+      <button type="button" data-command="underline" title="Underline"><u>U</u></button>
+      <button type="button" data-command="insertUnorderedList" title="Bullet list">List</button>
+      <button type="button" data-link title="Add link">Link</button>
+    </div>
+    <div class="rich-editor" contenteditable="true" data-field="bodyHtml" role="textbox" aria-label="News body">${sanitizeRichText(item.bodyHtml || item.body || '')}</div>
+  </article>`;
+}
+
+function adminEditorScript() {
+  return `
+    const newsList = document.querySelector('[data-news-list]');
+    const newsForm = document.querySelector('[data-news-form]');
+    const payloadInput = document.querySelector('[data-news-payload]');
+    const addButton = document.querySelector('[data-add-news]');
+
+    addButton?.addEventListener('click', () => {
+      const template = document.createElement('template');
+      template.innerHTML = ${JSON.stringify(renderNewsEditorItem({
+        title: '',
+        category: 'Update',
+        date: new Date().toISOString().slice(0, 10),
+        bodyHtml: '',
+        linkLabel: '',
+        linkUrl: ''
+      }))};
+      newsList.appendChild(template.content.firstElementChild);
+    });
+
+    newsList?.addEventListener('click', (event) => {
+      const removeButton = event.target.closest('[data-remove-news]');
+      if (removeButton) {
+        if (newsList.querySelectorAll('[data-news-item]').length > 1) {
+          removeButton.closest('[data-news-item]').remove();
+        }
+        return;
+      }
+
+      const commandButton = event.target.closest('[data-command]');
+      if (commandButton) {
+        event.preventDefault();
+        commandButton.closest('[data-news-item]').querySelector('.rich-editor')?.focus();
+        document.execCommand(commandButton.dataset.command, false, null);
+        return;
+      }
+
+      const linkButton = event.target.closest('[data-link]');
+      if (linkButton) {
+        event.preventDefault();
+        linkButton.closest('[data-news-item]').querySelector('.rich-editor')?.focus();
+        const url = prompt('Link URL');
+        if (url && /^https?:\\/\\//i.test(url)) document.execCommand('createLink', false, url);
+      }
+    });
+
+    newsForm?.addEventListener('submit', () => {
+      payloadInput.value = JSON.stringify(Array.from(newsList.querySelectorAll('[data-news-item]')).map((item) => ({
+        title: item.querySelector('[data-field="title"]').value,
+        category: item.querySelector('[data-field="category"]').value,
+        date: item.querySelector('[data-field="date"]').value,
+        bodyHtml: item.querySelector('[data-field="bodyHtml"]').innerHTML,
+        linkLabel: item.querySelector('[data-field="linkLabel"]').value,
+        linkUrl: item.querySelector('[data-field="linkUrl"]').value
+      })));
+    });
+  `;
 }
 
 function adminStyles() {
@@ -690,6 +852,79 @@ function adminStyles() {
       padding: 14px;
       resize: vertical;
       width: 100%;
+    }
+    input {
+      background: #070b12;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      color: var(--text);
+      font: inherit;
+      min-height: 42px;
+      padding: 10px 12px;
+      width: 100%;
+    }
+    label {
+      color: var(--text);
+      display: grid;
+      font-weight: 800;
+      gap: 7px;
+    }
+    .news-editor-list {
+      display: grid;
+      gap: 14px;
+    }
+    .news-editor-item {
+      background: rgba(7, 11, 18, .5);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .item-head {
+      align-items: center;
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .field-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .field-grid .full { grid-column: 1 / -1; }
+    .editor-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 14px;
+    }
+    .editor-toolbar button,
+    .button.compact {
+      min-height: 34px;
+      margin-top: 0;
+      padding: 7px 10px;
+    }
+    .rich-editor {
+      background: #070b12;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      color: var(--text);
+      line-height: 1.55;
+      margin-top: 8px;
+      min-height: 170px;
+      outline: none;
+      padding: 13px;
+    }
+    .rich-editor:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 2px rgba(39, 215, 255, .25);
+    }
+    .rich-editor a { color: var(--cyan); }
+    .admin-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
     }
     button, .button {
       align-items: center;
