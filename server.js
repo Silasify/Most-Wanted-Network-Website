@@ -742,20 +742,35 @@ async function renderAdminPage(admin, notice) {
   <style>${adminStyles()}</style>
 </head>
 <body>
-  <header>
-    <a class="admin-brand" href="/">
-      <img src="/assets/most-wanted-network-logo-gaming.png" alt="">
-      <div>
-        <span class="eyebrow">Website Admin</span>
-        <h1>Most Wanted Network</h1>
-        <p>Signed in as ${escapeHtml(admin.username)}. Changes are saved directly to the website config files.</p>
+  <div class="admin-shell">
+    <aside class="admin-sidebar">
+      <a class="admin-brand" href="/">
+        <img src="/assets/most-wanted-network-logo-gaming.png" alt="">
+        <div>
+          <strong>MWN Admin</strong>
+          <span>${escapeHtml(admin.username)}</span>
+        </div>
+      </a>
+      <nav class="admin-nav" aria-label="Admin sections">
+        <a href="#page-content">Page Content</a>
+        <a href="#news">News</a>
+        <a href="#server-status">Server Status</a>
+      </nav>
+      <div class="sidebar-actions">
+        <a class="button secondary" href="/" target="_blank" rel="noreferrer">Open Site</a>
+        <a class="button secondary" href="/admin/logout">Logout</a>
       </div>
-    </a>
-    <a class="button secondary" href="/admin/logout">Logout</a>
-  </header>
-  <main>
-    ${notice ? `<div class="notice">${escapeHtml(notice)}</div>` : ''}
-    <section>
+    </aside>
+    <main class="admin-main">
+      <header class="admin-topbar">
+        <div>
+          <span class="eyebrow">Website Admin</span>
+          <h1>Content Management</h1>
+          <p>Update public website content, news posts, and server status entries.</p>
+        </div>
+      </header>
+      ${notice ? `<div class="notice">${escapeHtml(notice)}</div>` : ''}
+      <section id="page-content">
       <div class="section-head">
         <div>
           <h2>Page Content</h2>
@@ -770,8 +785,8 @@ async function renderAdminPage(admin, notice) {
           <button type="submit">Save Page Content</button>
         </div>
       </form>
-    </section>
-    <section>
+      </section>
+      <section id="news">
       <div class="section-head">
         <div>
           <h2>News & Changelog</h2>
@@ -789,8 +804,8 @@ async function renderAdminPage(admin, notice) {
           <button type="submit">Save News</button>
         </div>
       </form>
-    </section>
-    <section>
+      </section>
+      <section id="server-status">
       <div class="section-head">
         <div>
           <h2>Server Status</h2>
@@ -807,8 +822,9 @@ async function renderAdminPage(admin, notice) {
           <button type="submit">Save Status</button>
         </div>
       </form>
-    </section>
-  </main>
+      </section>
+    </main>
+  </div>
   <script>${adminEditorScript()}</script>
 </body>
 </html>`;
@@ -1144,49 +1160,104 @@ function adminStyles() {
     :root {
       color-scheme: dark;
       --bg: #07090d;
-      --panel: #111821;
-      --panel-2: #17212c;
+      --panel: #101720;
+      --panel-2: #151e29;
       --text: #f3f6f9;
       --muted: #aeb9c8;
       --line: #2b3542;
       --cyan: #27d7ff;
       --green: #9df044;
       --red: #ff5f83;
+      --sidebar: #080d13;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: Inter, Segoe UI, Arial, sans-serif;
-      background:
-        radial-gradient(circle at 18% 0%, rgba(39,215,255,.10), transparent 28rem),
-        radial-gradient(circle at 82% 8%, rgba(157,240,68,.08), transparent 24rem),
-        var(--bg);
+      font-family: Segoe UI, Arial, sans-serif;
+      background: var(--bg);
       color: var(--text);
     }
-    header, main { width: min(1180px, calc(100vw - 32px)); margin: 0 auto; }
-    header {
-      align-items: center;
+    .admin-shell {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+    .admin-sidebar {
+      background: var(--sidebar);
+      border-right: 1px solid var(--line);
       display: flex;
+      flex-direction: column;
       gap: 18px;
-      justify-content: space-between;
-      padding: 34px 0 18px;
+      padding: 20px 14px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
     }
     .admin-brand {
       align-items: center;
       color: inherit;
       display: flex;
-      gap: 14px;
+      gap: 10px;
+      padding: 0 6px 16px;
+      border-bottom: 1px solid var(--line);
       text-decoration: none;
     }
     .admin-brand img {
-      height: 64px;
+      height: 42px;
       object-fit: contain;
-      width: 64px;
+      width: 42px;
+    }
+    .admin-brand strong,
+    .admin-brand span {
+      display: block;
+    }
+    .admin-brand strong {
+      font-size: 16px;
+    }
+    .admin-brand span {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 3px;
+    }
+    .admin-nav {
+      display: grid;
+      gap: 6px;
+    }
+    .admin-nav a {
+      border: 1px solid transparent;
+      border-radius: 7px;
+      color: var(--muted);
+      font-weight: 700;
+      padding: 10px 11px;
+      text-decoration: none;
+    }
+    .admin-nav a:hover {
+      background: rgba(39, 215, 255, .08);
+      border-color: rgba(39, 215, 255, .24);
+      color: var(--cyan);
+    }
+    .sidebar-actions {
+      display: grid;
+      gap: 8px;
+      margin-top: auto;
+    }
+    .admin-main {
+      margin: 0;
+      padding: 24px 32px 42px;
+      width: 100%;
+    }
+    .admin-topbar {
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+      margin: 0 0 18px;
+      padding: 0;
     }
     h1, h2, p { margin: 0; letter-spacing: 0; }
-    h1 { font-size: clamp(34px, 5vw, 56px); line-height: 1; }
-    h2 { font-size: 24px; }
+    h1 { font-size: 28px; line-height: 1.1; }
+    h2 { font-size: 19px; }
+    h3 { font-size: 15px; margin: 0 0 12px; }
     p { color: var(--muted); line-height: 1.55; margin-top: 8px; }
     .eyebrow {
       color: var(--green);
@@ -1200,14 +1271,14 @@ function adminStyles() {
       background: linear-gradient(180deg, var(--panel), var(--panel-2));
       border: 1px solid var(--line);
       border-radius: 8px;
-      box-shadow: 0 16px 48px rgba(0,0,0,.24);
+      box-shadow: 0 14px 38px rgba(0,0,0,.18);
     }
-    section { margin: 18px 0; padding: 20px; }
+    section { margin: 18px 0; padding: 18px; scroll-margin-top: 18px; }
     .notice {
       border-color: rgba(157,240,68,.45);
       color: var(--green);
       font-weight: 800;
-      margin: 16px 0;
+      margin: 0 0 18px;
       padding: 12px 14px;
     }
     .section-head {
@@ -1241,7 +1312,8 @@ function adminStyles() {
     label {
       color: var(--text);
       display: grid;
-      font-weight: 800;
+      font-size: 13px;
+      font-weight: 700;
       gap: 7px;
     }
     .news-editor-list {
@@ -1250,8 +1322,8 @@ function adminStyles() {
     }
     .editor-group {
       border-top: 1px solid var(--line);
-      margin-top: 18px;
-      padding-top: 18px;
+      margin-top: 16px;
+      padding-top: 16px;
     }
     .editor-group:first-of-type {
       border-top: 0;
@@ -1360,12 +1432,24 @@ function adminStyles() {
       color: var(--text);
       margin-top: 0;
     }
+    button.secondary {
+      background: rgba(243,246,249,.08);
+      border: 1px solid rgba(243,246,249,.18);
+      color: var(--text);
+    }
     .login-page {
       display: grid;
       place-items: center;
+      background:
+        radial-gradient(circle at 18% 0%, rgba(39,215,255,.10), transparent 28rem),
+        radial-gradient(circle at 82% 8%, rgba(157,240,68,.08), transparent 24rem),
+        var(--bg);
     }
     .login-shell {
       width: min(520px, calc(100vw - 32px));
+    }
+    .login-shell section {
+      padding: 28px;
     }
     pre {
       background: #070b12;
@@ -1376,8 +1460,23 @@ function adminStyles() {
       padding: 12px;
       white-space: pre-wrap;
     }
-    @media (max-width: 700px) {
-      header, .section-head { display: grid; }
+    @media (max-width: 860px) {
+      .admin-shell { display: block; }
+      .admin-sidebar {
+        height: auto;
+        position: static;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .admin-nav {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      }
+      .sidebar-actions {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        margin-top: 0;
+      }
+      .admin-main { padding: 18px; }
+      .section-head { display: grid; }
       .button.secondary { width: 100%; }
       .field-grid,
       .action-row { grid-template-columns: 1fr; }
