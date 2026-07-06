@@ -58,7 +58,7 @@ function renderEntry(entry) {
     <div class="entry-top">
       <div>
         <h3>${escapeHtml(entry.name)}</h3>
-        ${entry.description ? `<p>${escapeHtml(entry.description)}</p>` : ''}
+        ${entry.description ? `<p class="entry-description">${renderMultilineText(entry.description)}</p>` : ''}
       </div>
       <span>${statusText}</span>
     </div>
@@ -83,6 +83,10 @@ function renderActions(actions) {
   return `<div class="entry-actions">${actions.map((action) =>
     `<a class="button secondary" href="${escapeHtml(action.url)}" rel="noreferrer">${escapeHtml(action.label)}</a>`
   ).join('')}</div>`;
+}
+
+function renderMultilineText(value) {
+  return escapeHtml(value).replace(/\n/g, '<br>');
 }
 
 function updateHealth(data) {

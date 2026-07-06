@@ -361,6 +361,17 @@ function cleanField(value, maxLength) {
   return String(value || '').replace(/\s+/g, ' ').trim().slice(0, maxLength);
 }
 
+function cleanMultilineText(value, maxLength) {
+  return String(value || '')
+    .replace(/\r/g, '')
+    .split('\n')
+    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+    .slice(0, maxLength);
+}
+
 function buildSuggestionMessage(suggestion, request) {
   return {
     username: 'Most Wanted Network Suggestions',
@@ -534,7 +545,7 @@ function parseStatusEditorPayload(itemsValue, settingsValue) {
         host: cleanField(item.host, 160),
         port: Number(item.port),
         group: cleanField(item.group, 80) || 'Servers',
-        description: cleanField(item.description, 260),
+        description: cleanMultilineText(item.description, 600),
         actions: Array.isArray(item.actions)
           ? item.actions
             .map((action) => ({
@@ -954,7 +965,7 @@ function renderStatusEditorItem(item) {
       <label>Group<input data-status-field="group" value="${escapeHtml(item.group || 'Servers')}" placeholder="Server"></label>
       <label>Host / IP<input data-status-field="host" value="${escapeHtml(item.host || '')}" placeholder="127.0.0.1"></label>
       <label>Port<input data-status-field="port" type="number" min="1" max="65535" value="${escapeHtml(item.port || '')}"></label>
-      <label class="full">Description<input data-status-field="description" value="${escapeHtml(item.description || '')}" placeholder="Optional public note"></label>
+      <label class="full">Description<textarea class="compact-textarea" data-status-field="description" rows="4" placeholder="Optional public note">${escapeHtml(item.description || '')}</textarea></label>
     </div>
     <div class="action-list" data-action-list>
       ${actions.map((action) => renderActionEditorItem(action)).join('')}
@@ -1298,6 +1309,10 @@ function adminStyles() {
       padding: 14px;
       resize: vertical;
       width: 100%;
+    }
+    textarea.compact-textarea {
+      font: inherit;
+      min-height: 96px;
     }
     input {
       background: #070b12;
