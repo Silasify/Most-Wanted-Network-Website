@@ -18,9 +18,31 @@ http://127.0.0.1:3100
 
 - Landing page: `http://127.0.0.1:3100/`
 - Server Status: `http://127.0.0.1:3100/status`
+- News: `http://127.0.0.1:3100/news`
 - About Us: `http://127.0.0.1:3100/about`
 - Suggestions: `http://127.0.0.1:3100/suggestions`
 - Discord join redirect: `http://127.0.0.1:3100/discord`
+- Admin: `http://127.0.0.1:3100/admin`
+
+## Website Admin
+
+The admin page uses Discord login and checks for a specific Discord role ID. Add these environment values to the website service:
+
+```bash
+DISCORD_CLIENT_ID="your_discord_application_client_id"
+DISCORD_CLIENT_SECRET="your_discord_application_client_secret"
+DISCORD_GUILD_ID="your_discord_server_id"
+ADMIN_ROLE_ID="role_id_allowed_to_edit_the_website"
+WEBSITE_PUBLIC_URL="https://mostwantednetwork.net"
+```
+
+In the Discord Developer Portal, add this redirect URL to the same application:
+
+```text
+https://mostwantednetwork.net/admin/callback
+```
+
+Then restart the website service and open `/admin`. The first version lets you edit `news.config.json` and `status.config.json` from the browser.
 
 ## Discord Join Button
 

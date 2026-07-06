@@ -12,10 +12,6 @@
       "group": "Server",
       "actions": [
         {
-          "label": "Open Dune",
-          "url": "https://dune.mostwantednetwork.net"
-        },
-        {
           "label": "Join Discord",
           "url": "https://discord.mostwantednetwork.net"
         }
