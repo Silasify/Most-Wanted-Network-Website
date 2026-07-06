@@ -763,9 +763,9 @@ async function renderAdminPage(admin, notice) {
         </div>
       </a>
       <nav class="admin-nav" aria-label="Admin sections">
-        <a href="#page-content">Page Content</a>
-        <a href="#news">News</a>
-        <a href="#server-status">Server Status</a>
+        <button type="button" class="active" data-admin-tab="page-content">Page Content</button>
+        <button type="button" data-admin-tab="news">News</button>
+        <button type="button" data-admin-tab="server-status">Server Status</button>
       </nav>
       <div class="sidebar-actions">
         <a class="button secondary" href="/" target="_blank" rel="noreferrer">Open Site</a>
@@ -781,7 +781,7 @@ async function renderAdminPage(admin, notice) {
         </div>
       </header>
       ${notice ? `<div class="notice">${escapeHtml(notice)}</div>` : ''}
-      <section id="page-content">
+      <section id="page-content" data-admin-panel="page-content">
       <div class="section-head">
         <div>
           <h2>Page Content</h2>
@@ -797,7 +797,7 @@ async function renderAdminPage(admin, notice) {
         </div>
       </form>
       </section>
-      <section id="news">
+      <section id="news" data-admin-panel="news" hidden>
       <div class="section-head">
         <div>
           <h2>News & Changelog</h2>
@@ -816,7 +816,7 @@ async function renderAdminPage(admin, notice) {
         </div>
       </form>
       </section>
-      <section id="server-status">
+      <section id="server-status" data-admin-panel="server-status" hidden>
       <div class="section-head">
         <div>
           <h2>Server Status</h2>
@@ -1027,8 +1027,20 @@ function adminEditorScript() {
     const statusSettings = document.querySelector('[data-status-settings]');
     const statusList = document.querySelector('[data-status-list]');
     const addStatusButton = document.querySelector('[data-add-status]');
+    const adminTabs = document.querySelectorAll('[data-admin-tab]');
+    const adminPanels = document.querySelectorAll('[data-admin-panel]');
     const blankStatus = ${JSON.stringify(renderStatusEditorItem({ name: '', host: '', port: 30120, group: 'Servers', description: '', actions: [] }))};
     const blankAction = ${JSON.stringify(renderActionEditorItem({ label: '', url: '' }))};
+
+    adminTabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.adminTab;
+        adminTabs.forEach((item) => item.classList.toggle('active', item === tab));
+        adminPanels.forEach((panel) => {
+          panel.hidden = panel.dataset.adminPanel !== target;
+        });
+      });
+    });
 
     addButton?.addEventListener('click', () => {
       const template = document.createElement('template');
@@ -1235,18 +1247,26 @@ function adminStyles() {
       display: grid;
       gap: 6px;
     }
-    .admin-nav a {
+    .admin-nav button {
+      background: transparent;
       border: 1px solid transparent;
       border-radius: 7px;
       color: var(--muted);
+      cursor: pointer;
+      font: inherit;
       font-weight: 700;
+      margin: 0;
       padding: 10px 11px;
-      text-decoration: none;
+      text-align: left;
     }
-    .admin-nav a:hover {
+    .admin-nav button:hover,
+    .admin-nav button.active {
       background: rgba(39, 215, 255, .08);
       border-color: rgba(39, 215, 255, .24);
       color: var(--cyan);
+    }
+    [hidden] {
+      display: none !important;
     }
     .sidebar-actions {
       display: grid;
