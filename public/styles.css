@@ -628,6 +628,17 @@ button:disabled {
   color: var(--text);
 }
 
+.site-nav .nav-admin {
+  background: rgba(243, 246, 249, .05);
+  border: 1px solid rgba(243, 246, 249, .14);
+  color: var(--steel);
+  padding-inline: 10px;
+}
+
+.site-nav .nav-admin:hover {
+  color: var(--text);
+}
+
 .entry-actions {
   display: flex;
   flex-wrap: wrap;
