@@ -1248,16 +1248,20 @@ function adminStyles() {
       gap: 6px;
     }
     .admin-nav button {
+      align-items: center;
       background: transparent;
       border: 1px solid transparent;
       border-radius: 7px;
       color: var(--muted);
       cursor: pointer;
+      display: flex;
       font: inherit;
       font-weight: 700;
+      justify-content: flex-start;
       margin: 0;
       padding: 10px 11px;
       text-align: left;
+      width: 100%;
     }
     .admin-nav button:hover,
     .admin-nav button.active {
