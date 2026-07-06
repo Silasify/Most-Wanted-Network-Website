@@ -74,7 +74,15 @@ function renderEntry(entry) {
       <div><dt>Latency</dt><dd>${escapeHtml(latency)}</dd></div>
       <div><dt>Checked</dt><dd>${new Date(entry.checkedAt).toLocaleTimeString()}</dd></div>
     </dl>
+    ${renderActions(entry.actions)}
   </article>`;
+}
+
+function renderActions(actions) {
+  if (!Array.isArray(actions) || actions.length === 0) return '';
+  return `<div class="entry-actions">${actions.map((action) =>
+    `<a class="button secondary" href="${escapeHtml(action.url)}" rel="noreferrer">${escapeHtml(action.label)}</a>`
+  ).join('')}</div>`;
 }
 
 function updateHealth(data) {

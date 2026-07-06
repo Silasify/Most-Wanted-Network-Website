@@ -549,6 +549,18 @@ button:disabled {
   margin-top: 7px;
 }
 
+.entry-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.entry-actions .button {
+  min-height: 38px;
+  padding: 8px 12px;
+}
+
 dl {
   display: grid;
   gap: 10px;
@@ -652,6 +664,42 @@ textarea {
   overflow-wrap: anywhere;
 }
 
+.news-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.news-card {
+  align-items: center;
+  background: linear-gradient(180deg, rgba(23, 31, 41, .96), rgba(16, 21, 28, .98));
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  padding: 22px;
+}
+
+.news-card h2 {
+  font-size: clamp(24px, 3vw, 34px);
+}
+
+.news-card p {
+  margin-top: 10px;
+}
+
+.news-card a {
+  background: rgba(39, 215, 255, .1);
+  border: 1px solid rgba(39, 215, 255, .35);
+  border-radius: 7px;
+  color: var(--cyan);
+  flex: 0 0 auto;
+  font-weight: 900;
+  padding: 10px 13px;
+}
+
 .form-message {
   color: var(--muted);
   font-weight: 800;
@@ -744,7 +792,8 @@ textarea {
   .hero-actions,
   .site-footer,
   .panel-head,
-  .entry-top {
+  .entry-top,
+  .news-card {
     display: grid;
   }
 

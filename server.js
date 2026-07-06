@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 const configPath = path.join(rootDir, 'status.config.json');
+const newsPath = path.join(rootDir, 'news.config.json');
 const publicDir = path.join(rootDir, 'public');
 
 const mimeTypes = {
@@ -33,11 +34,16 @@ const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, await buildStatus());
     }
 
+    if (url.pathname === '/api/news') {
+      return sendJson(response, 200, await buildNews());
+    }
+
     const pageRoutes = {
       '/': '/index.html',
       '/status': '/status.html',
       '/about': '/about.html',
       '/suggestions': '/suggestions.html',
+      '/news': '/news.html',
       '/dayzmonetization': '/dayzmonetization.html'
     };
     const requestedPath = pageRoutes[url.pathname] || url.pathname;
@@ -87,6 +93,15 @@ async function buildStatus() {
   };
 }
 
+async function buildNews() {
+  const currentConfig = await readNewsConfig();
+  return {
+    siteName: config.siteName,
+    generatedAt: new Date().toISOString(),
+    items: currentConfig.items
+  };
+}
+
 async function redirectToDiscord(response) {
   const currentConfig = await readConfig();
   if (!currentConfig.discordInviteUrl) {
@@ -98,8 +113,10 @@ async function redirectToDiscord(response) {
 }
 
 async function handleSuggestion(request, response) {
+  const botSuggestionUrl = process.env.BOT_SUGGESTIONS_URL;
+  const botSuggestionToken = process.env.WEBSITE_SUGGESTION_TOKEN;
   const webhookUrl = process.env.DISCORD_SUGGESTIONS_WEBHOOK_URL;
-  if (!webhookUrl) {
+  if (!botSuggestionUrl && !webhookUrl) {
     return sendJson(response, 503, {
       ok: false,
       message: 'Suggestions are not connected to Discord yet.'
@@ -113,6 +130,32 @@ async function handleSuggestion(request, response) {
       ok: false,
       message: 'Please add your suggestion before sending.'
     });
+  }
+
+  if (botSuggestionUrl && botSuggestionToken) {
+    const botResponse = await fetch(botSuggestionUrl, {
+      method: 'POST',
+      headers: {
+        'authorization': `Bearer ${botSuggestionToken}`,
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify(suggestion)
+    }).catch((error) => ({ ok: false, status: 500, statusText: error.message }));
+
+    if (botResponse.ok) {
+      return sendJson(response, 200, {
+        ok: true,
+        message: 'Thanks, your suggestion was sent to the MWN Discord.'
+      });
+    }
+
+    if (!webhookUrl) {
+      console.error('Bot suggestion endpoint failed:', botResponse.status, botResponse.statusText);
+      return sendJson(response, 502, {
+        ok: false,
+        message: 'Discord did not accept the suggestion. Please try again later.'
+      });
+    }
   }
 
   const discordResponse = await fetch(webhookUrl, {
@@ -186,8 +229,20 @@ async function checkServer(item, timeoutMs) {
     checkedAt: new Date().toISOString(),
     online: result.online,
     latencyMs: result.online ? Date.now() - startedAt : null,
-    reason: result.reason || null
+    reason: result.reason || null,
+    actions: normalizeActions(item.actions)
   };
+}
+
+function normalizeActions(actions) {
+  if (!Array.isArray(actions)) return [];
+  return actions
+    .map((action) => ({
+      label: cleanField(action.label, 32),
+      url: cleanField(action.url, 300)
+    }))
+    .filter((action) => action.label && /^https?:\/\//i.test(action.url))
+    .slice(0, 4);
 }
 
 function checkTcp(host, port, timeoutMs) {
@@ -221,6 +276,30 @@ async function readConfig() {
     discordInviteUrl: process.env.DISCORD_INVITE_URL || config.discordInviteUrl || '',
     servers: Array.isArray(config.servers) ? config.servers : []
   };
+}
+
+async function readNewsConfig() {
+  try {
+    const raw = await readFile(newsPath, 'utf8');
+    const news = JSON.parse(raw);
+    const items = Array.isArray(news.items) ? news.items : [];
+    return {
+      items: items
+        .map((item) => ({
+          title: cleanField(item.title, 120) || 'Network update',
+          category: cleanField(item.category, 60) || 'Update',
+          date: cleanField(item.date, 40) || '',
+          body: cleanField(item.body, 800),
+          linkLabel: cleanField(item.linkLabel, 40),
+          linkUrl: cleanField(item.linkUrl, 300)
+        }))
+        .filter((item) => item.body)
+        .slice(0, 20)
+    };
+  } catch (error) {
+    if (error.code !== 'ENOENT') console.error('News config failed:', error);
+    return { items: [] };
+  }
 }
 
 function readJsonBody(request, maxBytes) {

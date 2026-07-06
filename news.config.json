@@ -1,0 +1,20 @@
+{
+  "items": [
+    {
+      "title": "Most Wanted Network is online",
+      "category": "Network",
+      "date": "2026-07-06",
+      "body": "The website, server status page, and Discord tools are now being tied together so players can find updates in one place.",
+      "linkLabel": "View status",
+      "linkUrl": "https://mostwantednetwork.net/status"
+    },
+    {
+      "title": "Suggestions are open",
+      "category": "Community",
+      "date": "2026-07-06",
+      "body": "Have an idea for a server, event, setting, or community improvement? Send it through the website and it can land in Discord for the team to review.",
+      "linkLabel": "Send suggestion",
+      "linkUrl": "https://mostwantednetwork.net/suggestions"
+    }
+  ]
+}

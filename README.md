@@ -24,24 +24,39 @@ http://127.0.0.1:3100
 
 ## Discord Join Button
 
-Set `discordInviteUrl` in `standalone-status/status.config.json` or start the website with `DISCORD_INVITE_URL`.
+Set `discordInviteUrl` in `status.config.json` or start the website with `DISCORD_INVITE_URL`.
 
 PowerShell:
 
 ```powershell
 $env:DISCORD_INVITE_URL="https://discord.gg/your-invite"
-node standalone-status/server.js
+node server.js
 ```
 
 ## Send Suggestions to Discord
 
-Create a Discord webhook for the channel that should receive website suggestions. Then start the website with the webhook URL in `DISCORD_SUGGESTIONS_WEBHOOK_URL`.
+The best setup is to let the website send suggestions into the Discord bot, because the bot can post them with voting buttons.
+
+Set these on the website service:
+
+```bash
+BOT_SUGGESTIONS_URL="http://127.0.0.1:3000/api/website-suggestion"
+WEBSITE_SUGGESTION_TOKEN="use-the-same-secret-as-the-bot"
+```
+
+Set the same token on the bot service:
+
+```bash
+WEBSITE_SUGGESTION_TOKEN="use-the-same-secret-as-the-website"
+```
+
+As a fallback, you can still use a plain Discord webhook for the channel that should receive website suggestions:
 
 PowerShell:
 
 ```powershell
 $env:DISCORD_SUGGESTIONS_WEBHOOK_URL="https://discord.com/api/webhooks/..."
-node standalone-status/server.js
+node server.js
 ```
 
 If this variable is not set, the Suggestions page will show that Discord is not connected yet.
@@ -61,7 +76,7 @@ The site listens on the port from `STATUS_PORT`, or `3100` by default. Put Nginx
 
 ## Add Servers
 
-Edit `standalone-status/status.config.json`:
+Edit `status.config.json`:
 
 ```json
 {
@@ -69,14 +84,26 @@ Edit `standalone-status/status.config.json`:
   "host": "127.0.0.1",
   "port": 30120,
   "group": "Production",
-  "description": "Optional short note"
+  "description": "Optional short note",
+  "actions": [
+    {
+      "label": "Join Discord",
+      "url": "https://discord.mostwantednetwork.net"
+    }
+  ]
 }
 ```
 
 Add as many objects as needed to the `servers` array.
 
+`actions` are public buttons shown on the status card. The hidden check address still stays private.
+
+## Add News
+
+Edit `news.config.json` to add updates for new servers, wipes, events, maintenance, and mod changes. The public page is available at `/news`.
+
 To use a different web port without editing the file:
 
 ```bash
-$env:STATUS_PORT=3200; node standalone-status/server.js
+$env:STATUS_PORT=3200; node server.js
 ```
