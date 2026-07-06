@@ -118,20 +118,15 @@ button:disabled {
 
 .site-header {
   align-items: center;
-  background: rgba(7, 9, 13, .76);
-  border: 1px solid rgba(243, 246, 249, .1);
-  border-radius: 8px;
-  box-shadow: 0 14px 40px rgba(0, 0, 0, .22);
   display: flex;
   gap: 20px;
   justify-content: space-between;
-  left: 50%;
-  margin: 0;
-  padding: 10px 12px;
+  left: 0;
+  margin: 0 auto;
+  padding: 18px clamp(16px, 4vw, 48px);
   position: absolute;
-  top: 18px;
-  transform: translateX(-50%);
-  width: min(1180px, calc(100vw - 32px));
+  right: 0;
+  top: 0;
   z-index: 5;
 }
 
@@ -629,10 +624,15 @@ button:disabled {
 }
 
 .site-nav .nav-admin {
+  align-items: center;
   background: rgba(243, 246, 249, .05);
   border: 1px solid rgba(243, 246, 249, .14);
   color: var(--steel);
-  padding-inline: 10px;
+  display: inline-flex;
+  font-size: 15px;
+  justify-content: center;
+  min-width: 38px;
+  padding: 9px 0;
 }
 
 .site-nav .nav-admin:hover {
@@ -848,11 +848,7 @@ textarea {
     align-items: flex-start;
     display: grid;
     gap: 12px;
-    left: auto;
     position: relative;
-    top: auto;
-    transform: none;
-    width: auto;
   }
 
   .hero-home {
