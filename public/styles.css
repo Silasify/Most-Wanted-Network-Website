@@ -579,7 +579,42 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
+.entry-title-row {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+}
+
+.entry-logo {
+  background: rgba(39, 215, 255, .08);
+  border: 1px solid rgba(39, 215, 255, .22);
+  border-radius: 8px;
+  flex: 0 0 auto;
+  height: 46px;
+  object-fit: cover;
+  width: 46px;
+}
+
+.entry-logo.placeholder {
+  align-items: center;
+  color: var(--cyan);
+  display: flex;
+  font-size: 13px;
+  font-weight: 900;
+  justify-content: center;
+}
+
+.entry-game {
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 900;
+  margin-top: 5px;
+  text-transform: uppercase;
+}
+
 .entry-description {
+  margin-top: 8px;
   white-space: normal;
 }
 

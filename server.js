@@ -372,6 +372,11 @@ function cleanMultilineText(value, maxLength) {
     .slice(0, maxLength);
 }
 
+function cleanImageUrl(value) {
+  const url = cleanField(value, 500);
+  return /^https?:\/\/.+\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(url) ? url : '';
+}
+
 function buildSuggestionMessage(suggestion, request) {
   return {
     username: 'Most Wanted Network Suggestions',
@@ -542,6 +547,8 @@ function parseStatusEditorPayload(itemsValue, settingsValue) {
     const servers = items
       .map((item) => ({
         name: cleanField(item.name, 100) || 'Server',
+        game: cleanField(item.game, 80),
+        logoUrl: cleanImageUrl(item.logoUrl),
         host: cleanField(item.host, 160),
         port: Number(item.port),
         group: cleanField(item.group, 80) || 'Servers',
@@ -613,6 +620,8 @@ async function checkServer(item, timeoutMs) {
   return {
     id: item.id || item.name,
     name: item.name,
+    game: item.game || '',
+    logoUrl: cleanImageUrl(item.logoUrl),
     group: item.group || 'Servers',
     description: item.description || '',
     checkedAt: new Date().toISOString(),
@@ -945,7 +954,7 @@ function renderStatusEditor(config) {
       </div>
     </div>
     <div class="news-editor-list" data-status-list>
-      ${(config.servers || []).map((server) => renderStatusEditorItem(server)).join('') || renderStatusEditorItem({ name: '', host: '', port: 30120, group: 'Servers', description: '', actions: [] })}
+      ${(config.servers || []).map((server) => renderStatusEditorItem(server)).join('') || renderStatusEditorItem({ name: '', game: '', logoUrl: '', host: '', port: 30120, group: 'Servers', description: '', actions: [] })}
     </div>
   `;
 }
@@ -962,7 +971,9 @@ function renderStatusEditorItem(item) {
     </div>
     <div class="field-grid">
       <label>Name<input data-status-field="name" value="${escapeHtml(item.name || '')}" placeholder="Dune: Awakening"></label>
+      <label>Game<input data-status-field="game" value="${escapeHtml(item.game || '')}" placeholder="Dune: Awakening"></label>
       <label>Group<input data-status-field="group" value="${escapeHtml(item.group || 'Servers')}" placeholder="Server"></label>
+      <label>Logo URL<input data-status-field="logoUrl" value="${escapeHtml(item.logoUrl || '')}" placeholder="https://example.com/logo.png"></label>
       <label>Host / IP<input data-status-field="host" value="${escapeHtml(item.host || '')}" placeholder="127.0.0.1"></label>
       <label>Port<input data-status-field="port" type="number" min="1" max="65535" value="${escapeHtml(item.port || '')}"></label>
       <label class="full">Description<textarea class="compact-textarea" data-status-field="description" rows="4" placeholder="Optional public note">${escapeHtml(item.description || '')}</textarea></label>
@@ -1029,7 +1040,7 @@ function adminEditorScript() {
     const addStatusButton = document.querySelector('[data-add-status]');
     const adminTabs = document.querySelectorAll('[data-admin-tab]');
     const adminPanels = document.querySelectorAll('[data-admin-panel]');
-    const blankStatus = ${JSON.stringify(renderStatusEditorItem({ name: '', host: '', port: 30120, group: 'Servers', description: '', actions: [] }))};
+    const blankStatus = ${JSON.stringify(renderStatusEditorItem({ name: '', game: '', logoUrl: '', host: '', port: 30120, group: 'Servers', description: '', actions: [] }))};
     const blankAction = ${JSON.stringify(renderActionEditorItem({ label: '', url: '' }))};
 
     adminTabs.forEach((tab) => {
@@ -1165,6 +1176,8 @@ function adminEditorScript() {
       statusSettings.value = JSON.stringify(Object.fromEntries(Array.from(statusForm.querySelectorAll('[data-status-setting]')).map((input) => [input.dataset.statusSetting, input.value])));
       statusPayload.value = JSON.stringify(Array.from(statusList.querySelectorAll('[data-status-item]')).map((item) => ({
         name: item.querySelector('[data-status-field="name"]').value,
+        game: item.querySelector('[data-status-field="game"]').value,
+        logoUrl: item.querySelector('[data-status-field="logoUrl"]').value,
         group: item.querySelector('[data-status-field="group"]').value,
         host: item.querySelector('[data-status-field="host"]').value,
         port: item.querySelector('[data-status-field="port"]').value,

@@ -53,12 +53,19 @@ function renderEntry(entry) {
   const statusText = entry.online ? 'Online' : 'Offline';
   const latency = entry.online ? `${entry.latencyMs} ms` : reasonText(entry.reason);
   const health = getEntryHealth(entry);
+  const logo = entry.logoUrl
+    ? `<img class="entry-logo" src="${escapeHtml(entry.logoUrl)}" alt="" loading="lazy">`
+    : `<div class="entry-logo placeholder" aria-hidden="true">${escapeHtml(getInitials(entry.name))}</div>`;
 
   return `<article class="entry-card ${entry.online ? 'online' : 'offline'}">
     <div class="entry-top">
-      <div>
-        <h3>${escapeHtml(entry.name)}</h3>
-        ${entry.description ? `<p class="entry-description">${renderMultilineText(entry.description)}</p>` : ''}
+      <div class="entry-title-row">
+        ${logo}
+        <div>
+          <h3>${escapeHtml(entry.name)}</h3>
+          ${entry.game ? `<div class="entry-game">${escapeHtml(entry.game)}</div>` : ''}
+          ${entry.description ? `<p class="entry-description">${renderMultilineText(entry.description)}</p>` : ''}
+        </div>
       </div>
       <span>${statusText}</span>
     </div>
@@ -87,6 +94,16 @@ function renderActions(actions) {
 
 function renderMultilineText(value) {
   return escapeHtml(value).replace(/\n/g, '<br>');
+}
+
+function getInitials(value) {
+  return String(value || 'MWN')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase() || 'MW';
 }
 
 function updateHealth(data) {

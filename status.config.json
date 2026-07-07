@@ -7,6 +7,7 @@
   "servers": [
     {
       "name": "Dune: Awakening",
+      "game": "Dune: Awakening",
       "host": "37.187.155.188",
       "port": 18080,
       "group": "Server",
@@ -19,6 +20,7 @@
     },
     {
       "name": "Discord Bot",
+      "game": "Discord",
       "host": "37.187.155.188",
       "port": 3000,
       "group": "Web",
